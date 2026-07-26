@@ -276,7 +276,26 @@ class DisplayWindow(Adw.ApplicationWindow):
     def _on_canvas_move(self, name: str, x: int, y: int) -> None:
         self.pending[name].x = x
         self.pending[name].y = y
+        self._normalize_positions()
+        self._refresh_canvas()
         self._refresh_apply()
+
+    def _normalize_positions(self) -> None:
+        """Shift all monitors so the top-left of the enabled bounds is (0, 0).
+
+        Keeps the live preview coordinates identical to what gets written to
+        the config file (which is normalized the same way).
+        """
+        enabled = [p for p in self.pending.values() if p.enabled]
+        if not enabled:
+            return
+        min_x = min(p.x for p in enabled)
+        min_y = min(p.y for p in enabled)
+        if (min_x, min_y) == (0, 0):
+            return
+        for p in self.pending.values():
+            p.x -= min_x
+            p.y -= min_y
 
     # --- per-monitor rows -----------------------------------------------------
 

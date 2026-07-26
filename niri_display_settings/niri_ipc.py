@@ -148,7 +148,8 @@ def set_scale(name: str, scale: float) -> None:
 
 
 def set_position(name: str, x: int, y: int) -> None:
-    _msg_output(name, "position", "set", str(x), str(y))
+    # "--" so negative coordinates aren't parsed as flags
+    _msg_output(name, "position", "set", "--", str(x), str(y))
 
 
 def set_transform(name: str, transform: str) -> None:
