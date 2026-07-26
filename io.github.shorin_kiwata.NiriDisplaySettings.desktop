@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Display Settings (niri)
-Name[zh_CN]=显示设置 (niri)
+Name=Niri Display Settings
+Name[zh_CN]=Niri显示设置
 Comment=Configure monitors for the niri compositor
 Comment[zh_CN]=为 niri 合成器配置显示器
 Exec=niri-display-settings
-Icon=preferences-desktop-display
+Icon=niri-display-settings
 Categories=Settings;HardwareSettings;
 Keywords=monitor;display;output;niri;

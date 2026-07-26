@@ -34,8 +34,10 @@ cd niri-display-settings
 
 ```bash
 pip install --user .
-# 可选：安装桌面入口
-cp niri-display-settings.desktop ~/.local/share/applications/
+# 可选：安装图标与桌面入口
+mkdir -p ~/.local/share/icons/hicolor/512x512/apps
+cp icons/niri-display-settings.png ~/.local/share/icons/hicolor/512x512/apps/
+cp io.github.shorin_kiwata.NiriDisplaySettings.desktop ~/.local/share/applications/
 ```
 
 ## 工作原理

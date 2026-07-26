@@ -4,7 +4,7 @@ import locale
 import os
 
 _ZH = {
-    "Display Settings": "显示设置",
+    "Display Settings": "Niri显示设置",
     "Apply": "应用",
     "Refresh state": "刷新状态",
     "Arrangement": "排列",

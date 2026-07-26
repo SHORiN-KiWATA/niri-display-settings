@@ -164,6 +164,14 @@ def set_vrr(name: str, vrr: str) -> None:
         _msg_output(name, "vrr", vrr)
 
 
+def focused_output_name() -> str | None:
+    p = _run(["niri", "msg", "--json", "focused-output"])
+    if p.returncode != 0 or not p.stdout.strip():
+        return None
+    data = json.loads(p.stdout)
+    return data.get("name") if isinstance(data, dict) else None
+
+
 # --- validation ---------------------------------------------------------------
 
 def validate(config_path: Path) -> tuple[bool, str]:

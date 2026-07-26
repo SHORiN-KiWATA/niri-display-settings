@@ -21,10 +21,14 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 
-from . import kdl_edit, niri_ipc
+from . import kdl_edit, niri_ipc, virtual_pointer
 from .canvas import CanvasMonitor, MonitorCanvas
 from .i18n import _
 from .layout import Pending, normalize_positions, reflow_after_resize
+
+# ops that change output geometry and can strand the cursor
+_GEOMETRY_OPS = {niri_ipc.set_position, niri_ipc.set_mode, niri_ipc.set_scale,
+                 niri_ipc.set_transform, niri_ipc.set_enabled}
 
 TRANSFORMS = ["normal", "90", "180", "270",
               "flipped", "flipped-90", "flipped-180", "flipped-270"]
@@ -36,6 +40,7 @@ class DisplayWindow(Adw.ApplicationWindow):
     def __init__(self, app: Adw.Application) -> None:
         super().__init__(application=app, title=_("Display Settings"))
         self.set_default_size(760, 820)
+        self.set_icon_name("niri-display-settings")
 
         self.outputs: dict[str, niri_ipc.Output] = {}
         self.info: kdl_edit.ConfigInfo | None = None
@@ -497,9 +502,35 @@ class DisplayWindow(Adw.ApplicationWindow):
                 ops.append((niri_ipc.set_enabled, name, False))
         return ops
 
-    def _run_ops(self, ops: list[tuple]) -> None:
+    def _run_ops(self, ops: list[tuple], state: dict[str, Pending]) -> None:
         for fn, *args in ops:
             fn(*args)
+        if any(fn in _GEOMETRY_OPS for fn, *_a in ops):
+            self._rescue_cursor(state)
+
+    def _rescue_cursor(self, state: dict[str, Pending]) -> None:
+        """Keep the cursor near this window after outputs were rearranged.
+
+        niri leaves a stranded cursor at its stale coordinates and teleports
+        it to the center of the *first* output on the next motion event, so
+        we proactively warp it to the center of the output this window is on
+        (where the confirmation dialog appears) via the virtual pointer
+        protocol.  Best effort: failures are ignored.
+        """
+        name = niri_ipc.focused_output_name()
+        p = state.get(name) if name else None
+        if p is None or not p.enabled:
+            p = next((q for q in state.values() if q.enabled), None)
+            if p is None:
+                return
+        enabled = [q for q in state.values() if q.enabled]
+        sizes = {id(q): q.logical_size() for q in enabled}
+        bx = min(q.x for q in enabled)
+        by = min(q.y for q in enabled)
+        bw = max(q.x + sizes[id(q)][0] for q in enabled) - bx
+        bh = max(q.y + sizes[id(q)][1] for q in enabled) - by
+        w, h = p.logical_size()
+        virtual_pointer.warp(p.x + w // 2 - bx, p.y + h // 2 - by, bw, bh)
 
     def _on_apply(self, _btn) -> None:
         if self.pending == self.original:
@@ -507,10 +538,11 @@ class DisplayWindow(Adw.ApplicationWindow):
             return
         ops = self._live_ops(self.pending, self.original)
         try:
-            self._run_ops(ops)
+            self._run_ops(ops, self.pending)
         except niri_ipc.NiriError as e:
             try:
-                self._run_ops(self._live_ops(self.original, self.pending))
+                self._run_ops(self._live_ops(self.original, self.pending),
+                              self.original)
             except niri_ipc.NiriError:
                 pass
             self._error_dialog(_("Failed to apply preview"), str(e))
@@ -545,7 +577,8 @@ class DisplayWindow(Adw.ApplicationWindow):
                 self._persist()
             else:
                 try:
-                    self._run_ops(self._live_ops(self.original, self.pending))
+                    self._run_ops(self._live_ops(self.original, self.pending),
+                                  self.original)
                 except niri_ipc.NiriError as e:
                     self._error_dialog(_("Failed to apply preview"), str(e))
                 self.pending = copy.deepcopy(self.original)
