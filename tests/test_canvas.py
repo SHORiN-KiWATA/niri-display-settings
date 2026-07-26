@@ -15,7 +15,7 @@ if _GTK:
     def _drag(target_dx, target_dy, steps=30):
         c = MonitorCanvas()
         c.set_monitors([
-            CanvasMonitor("eDP-1", 0, 0, 1969, 1107),
+            CanvasMonitor("eDP-1", 0, 0, 1970, 1108),
             CanvasMonitor("DP-2", 1970, 0, 2560, 1440),
         ])
         moved = []
@@ -30,11 +30,11 @@ if _GTK:
     def test_drag_below_lands_exactly_below():
         # regression: the live fit used to feed back into the drag mapping,
         # accelerating the monitor thousands of px past the pointer
-        assert _drag(-236, 133) == [("DP-2", 0, 1107)]
+        assert _drag(-236, 133) == [("DP-2", 0, 1108)]
 
     def test_drag_result_independent_of_event_count():
         assert _drag(-236, 133, steps=5) == _drag(-236, 133, steps=60)
 
     def test_small_vertical_offset_not_flung():
         [(_, x, y)] = _drag(0, 40)
-        assert x == 1969 and 250 < y < 450
+        assert x == 1970 and 250 < y < 450

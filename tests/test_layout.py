@@ -2,7 +2,7 @@ from niri_display_settings.layout import Pending, normalize_positions, reflow_af
 
 
 def dual() -> dict[str, Pending]:
-    # the real-world case: eDP-1 at scale 1.3 (logical 1969x1107), DP-2 right of it
+    # the real-world case: eDP-1 at scale 1.3 (logical 1970x1108 ceil), DP-2 right of it
     return {
         "eDP-1": Pending(width=2560, height=1440, scale=1.3, x=0, y=0),
         "DP-2": Pending(width=2560, height=1440, scale=1.0, x=1970, y=0),
@@ -12,10 +12,10 @@ def dual() -> dict[str, Pending]:
 def test_scale_down_pushes_right_neighbour():
     p = dual()
     old = p["eDP-1"].logical_size()
-    assert old == (1969, 1107)
+    assert old == (1970, 1108)
     p["eDP-1"].scale = 1.0                      # logical grows to 2560
     reflow_after_resize(p, "eDP-1", *old)
-    assert p["DP-2"].x == 1970 + (2560 - 1969)  # gap preserved, no overlap
+    assert p["DP-2"].x == 1970 + (2560 - 1970)  # flush stays flush, no overlap
 
 
 def test_scale_up_pulls_right_neighbour_back():
@@ -23,15 +23,15 @@ def test_scale_up_pulls_right_neighbour_back():
     old = p["eDP-1"].logical_size()
     p["eDP-1"].scale = 2.0                      # logical shrinks to 1280
     reflow_after_resize(p, "eDP-1", *old)
-    assert p["DP-2"].x == 1970 - (1969 - 1280)
+    assert p["DP-2"].x == 1970 - (1970 - 1280)
 
 
 def test_transform_swaps_and_reflows():
     p = dual()
     old = p["eDP-1"].logical_size()
-    p["eDP-1"].transform = "90"                 # logical becomes 1107x1969
+    p["eDP-1"].transform = "90"                 # logical becomes 1108x1970
     reflow_after_resize(p, "eDP-1", *old)
-    assert p["DP-2"].x == 1970 - (1969 - 1107)
+    assert p["DP-2"].x == 1970 - (1970 - 1108)
 
 
 def test_left_neighbour_unaffected():

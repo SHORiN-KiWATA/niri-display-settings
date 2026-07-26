@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -26,8 +27,11 @@ class Pending:
         w, h = self.width, self.height
         if self.transform in ("90", "270", "flipped-90", "flipped-270"):
             w, h = h, w
-        # niri floors when computing logical size (2560/1.3 -> 1969, 1440/1.3 -> 1107)
-        return max(1, int(w / self.scale)), max(1, int(h / self.scale))
+        # niri places outputs in fractional logical space (1440/1.3 = 1107.69),
+        # so adjacent positions must clear the ceiling: a monitor put at
+        # y=1107 below that one is rejected as overlapping, y=1108 works.
+        # (The IPC "logical" size reports the floor - do not copy that.)
+        return max(1, math.ceil(w / self.scale)), max(1, math.ceil(h / self.scale))
 
 
 def reflow_after_resize(pending: dict[str, Pending], name: str,
