@@ -48,6 +48,7 @@ class MonitorCanvas(Gtk.DrawingArea):
         self._drag_pos = (0.0, 0.0)       # current raw logical pos while dragging
         self._drag_valid = True
         self._last_valid = (0, 0)
+        self._drag_scale = 1.0            # canvas scale captured at drag start
 
         self.set_content_height(280)
         self.set_hexpand(True)
@@ -110,8 +111,10 @@ class MonitorCanvas(Gtk.DrawingArea):
 
     # --- snapping -------------------------------------------------------------
 
-    def _snap(self, m: CanvasMonitor, rx: float, ry: float) -> tuple[int, int]:
-        s, _, _ = self._fit()
+    def _snap(self, m: CanvasMonitor, rx: float, ry: float,
+              s: float | None = None) -> tuple[int, int]:
+        if s is None:
+            s = self._fit()[0]
         thr = SNAP_CANVAS_PX / max(s, 1e-6)
         others = [o for o in self.monitors if o.name != m.name and o.enabled]
 
@@ -160,6 +163,7 @@ class MonitorCanvas(Gtk.DrawingArea):
         if not m.enabled:
             self.queue_draw()
             return
+        self._drag_scale = self._fit()[0]
         self._drag_name = m.name
         self._drag_origin = (m.x, m.y)
         self._drag_pos = (float(m.x), float(m.y))
@@ -171,10 +175,14 @@ class MonitorCanvas(Gtk.DrawingArea):
         if not self._drag_name:
             return
         m = next(mm for mm in self.monitors if mm.name == self._drag_name)
-        s, _, _ = self._fit()
+        # map pointer movement with the scale captured at drag start: the live
+        # fit rescales as the dragged monitor expands the bounds, and feeding
+        # that back into the mapping makes the monitor accelerate away from
+        # the pointer (drag 133px down could end up thousands of px below)
+        s = self._drag_scale
         rx = self._drag_origin[0] + dx / s
         ry = self._drag_origin[1] + dy / s
-        sx, sy = self._snap(m, rx, ry)
+        sx, sy = self._snap(m, rx, ry, s)
         self._drag_valid = not self._overlapping(m, sx, sy)
         if self._drag_valid:
             self._last_valid = (sx, sy)

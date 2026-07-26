@@ -11,10 +11,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import test_canvas  # noqa: E402
 import test_kdl_edit  # noqa: E402
 import test_layout  # noqa: E402
 
-MODULES = [test_kdl_edit, test_layout]
+MODULES = [test_kdl_edit, test_layout, test_canvas]
 
 
 def main() -> int:
