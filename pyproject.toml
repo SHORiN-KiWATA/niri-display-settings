@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "niri-display-settings"
+version = "0.1.0"
+description = "A small GTK4/libadwaita GUI to configure monitors for the niri compositor"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "SHORiN-KiWATA" }]
+requires-python = ">=3.11"
+# Runtime deps are system packages, not pip packages:
+#   gtk4, libadwaita, python-gobject, niri
+dependencies = []
+
+[project.scripts]
+niri-display-settings = "niri_display_settings.app:main"
+
+[tool.setuptools.packages.find]
+include = ["niri_display_settings*"]
