@@ -24,35 +24,12 @@ from gi.repository import Adw, Gio, GLib, Gtk  # noqa: E402
 from . import kdl_edit, niri_ipc
 from .canvas import CanvasMonitor, MonitorCanvas
 from .i18n import _
+from .layout import Pending, normalize_positions, reflow_after_resize
 
 TRANSFORMS = ["normal", "90", "180", "270",
               "flipped", "flipped-90", "flipped-180", "flipped-270"]
 VRR_VALUES = ["off", "on", "on-demand"]
 COUNTDOWN_S = 15
-
-
-@dataclass
-class Pending:
-    """Desired state for one output, edited by the UI."""
-    enabled: bool = True
-    width: int = 1920
-    height: int = 1080
-    refresh_mhz: int = 60000
-    scale: float = 1.0
-    transform: str = "normal"
-    vrr: str = "off"
-    focus: bool = False
-    x: int = 0
-    y: int = 0
-
-    def mode_string(self) -> str:
-        return f"{self.width}x{self.height}@{self.refresh_mhz / 1000:.3f}"
-
-    def logical_size(self) -> tuple[int, int]:
-        w, h = self.width, self.height
-        if self.transform in ("90", "270", "flipped-90", "flipped-270"):
-            w, h = h, w
-        return max(1, round(w / self.scale)), max(1, round(h / self.scale))
 
 
 class DisplayWindow(Adw.ApplicationWindow):
@@ -276,26 +253,14 @@ class DisplayWindow(Adw.ApplicationWindow):
     def _on_canvas_move(self, name: str, x: int, y: int) -> None:
         self.pending[name].x = x
         self.pending[name].y = y
-        self._normalize_positions()
+        normalize_positions(self.pending)
         self._refresh_canvas()
         self._refresh_apply()
 
-    def _normalize_positions(self) -> None:
-        """Shift all monitors so the top-left of the enabled bounds is (0, 0).
-
-        Keeps the live preview coordinates identical to what gets written to
-        the config file (which is normalized the same way).
-        """
-        enabled = [p for p in self.pending.values() if p.enabled]
-        if not enabled:
-            return
-        min_x = min(p.x for p in enabled)
-        min_y = min(p.y for p in enabled)
-        if (min_x, min_y) == (0, 0):
-            return
-        for p in self.pending.values():
-            p.x -= min_x
-            p.y -= min_y
+    def _resized(self, old_size: tuple[int, int]) -> None:
+        """After a logical-size change, keep neighbours flush and origin at 0,0."""
+        reflow_after_resize(self.pending, self.selected, *old_size)
+        normalize_positions(self.pending)
 
     # --- per-monitor rows -----------------------------------------------------
 
@@ -378,11 +343,13 @@ class DisplayWindow(Adw.ApplicationWindow):
         w, h = res[row.get_selected()]
         if (w, h) == (p.width, p.height):
             return
+        old_size = p.logical_size()
         p.width, p.height = w, h
         rates = self._rates(o, w, h)
         best = next((m for m in rates if m.is_preferred), rates[0] if rates else None)
         if best:
             p.refresh_mhz = best.refresh_mhz
+        self._resized(old_size)
         self._populate_rows()
         self._refresh_canvas()
         self._refresh_apply()
@@ -401,7 +368,9 @@ class DisplayWindow(Adw.ApplicationWindow):
         p = self._sel()
         if p is None:
             return
+        old_size = p.logical_size()
         p.scale = round(row.get_value(), 2)
+        self._resized(old_size)
         self._refresh_canvas()
         self._refresh_apply()
 
@@ -409,7 +378,9 @@ class DisplayWindow(Adw.ApplicationWindow):
         p = self._sel()
         if p is None:
             return
+        old_size = p.logical_size()
         p.transform = TRANSFORMS[row.get_selected()]
+        self._resized(old_size)
         self._refresh_canvas()
         self._refresh_apply()
 

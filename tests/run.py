@@ -12,12 +12,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import test_kdl_edit  # noqa: E402
+import test_layout  # noqa: E402
+
+MODULES = [test_kdl_edit, test_layout]
 
 
 def main() -> int:
     passed, failed = 0, 0
-    for name, fn in sorted(vars(test_kdl_edit).items()):
-        if not name.startswith("test_") or not callable(fn):
+    tests = {f"{m.__name__}.{n}": fn
+             for m in MODULES for n, fn in vars(m).items()}
+    for name, fn in sorted(tests.items()):
+        if not name.split(".")[-1].startswith("test_") or not callable(fn):
             continue
         params = inspect.signature(fn).parameters
         try:
