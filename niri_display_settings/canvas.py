@@ -19,7 +19,7 @@ gi.require_version("PangoCairo", "1.0")
 from gi.repository import Adw, Gtk, Pango, PangoCairo  # noqa: E402
 
 PADDING = 28
-SNAP_CANVAS_PX = 10          # snap threshold, in on-screen pixels
+SNAP_CANVAS_PX = 22          # snap threshold, in on-screen pixels
 CORNER = 8
 
 
@@ -48,7 +48,6 @@ class MonitorCanvas(Gtk.DrawingArea):
         self._drag_pos = (0.0, 0.0)       # current raw logical pos while dragging
         self._drag_valid = True
         self._last_valid = (0, 0)
-        self._frozen_fit: tuple[float, float, float] | None = None
 
         self.set_content_height(280)
         self.set_hexpand(True)
@@ -75,19 +74,19 @@ class MonitorCanvas(Gtk.DrawingArea):
         self.queue_draw()
 
     def _fit(self) -> tuple[float, float, float]:
-        """Return (scale, offset_x, offset_y) mapping logical -> canvas coords.
-
-        Frozen during a drag so the mapping (and the snap threshold) stays
-        stable while the user moves a monitor around.
-        """
-        if self._frozen_fit is not None:
-            return self._frozen_fit
+        """Return (scale, offset_x, offset_y) mapping logical -> canvas coords."""
         if not self.monitors:
             return 0.1, PADDING, PADDING
         xs = [m.x for m in self.monitors]
         ys = [m.y for m in self.monitors]
         xe = [m.x + m.width for m in self.monitors]
         ye = [m.y + m.height for m in self.monitors]
+        if self._drag_name:
+            for m in self.monitors:
+                if m.name == self._drag_name:
+                    dx, dy = self._drag_pos
+                    xs.append(int(dx)); ys.append(int(dy))
+                    xe.append(int(dx) + m.width); ye.append(int(dy) + m.height)
         bw = max(xe) - min(xs) or 1
         bh = max(ye) - min(ys) or 1
         w = self.get_width() or 600
@@ -161,7 +160,6 @@ class MonitorCanvas(Gtk.DrawingArea):
         if not m.enabled:
             self.queue_draw()
             return
-        self._frozen_fit = self._fit()
         self._drag_name = m.name
         self._drag_origin = (m.x, m.y)
         self._drag_pos = (float(m.x), float(m.y))
@@ -190,7 +188,6 @@ class MonitorCanvas(Gtk.DrawingArea):
         m = next(mm for mm in self.monitors if mm.name == name)
         x, y = self._last_valid
         self._drag_name = None
-        self._frozen_fit = None
         m.x, m.y = int(x), int(y)
         self.queue_draw()
         if (x, y) != self._drag_origin and self.on_move:
