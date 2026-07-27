@@ -22,23 +22,31 @@
 - GTK4、libadwaita、PyGObject（Arch：`pacman -S gtk4 libadwaita python-gobject`，绝大多数桌面环境已自带）
 - Python ≥ 3.11
 
-## 运行
+## 安装
 
-```bash
-git clone https://github.com/SHORiN-KiWATA/niri-display-settings.git
-cd niri-display-settings
-./niri-display-settings
-```
+- Arch Linux
 
-或安装到系统：
+    ```
+    yay -S niri-display-settings-git
+    ```
 
-```bash
-pip install --user .
-# 可选：安装图标与桌面入口
-mkdir -p ~/.local/share/icons/hicolor/512x512/apps
-cp icons/niri-display-settings.png ~/.local/share/icons/hicolor/512x512/apps/
-cp io.github.shorin_kiwata.NiriDisplaySettings.desktop ~/.local/share/applications/
-```
+- 手动
+
+    ```bash
+    git clone https://github.com/SHORiN-KiWATA/niri-display-settings.git
+    cd niri-display-settings
+    ./niri-display-settings
+    ```
+
+    安装到系统：
+
+    ```bash
+    pip install --user .
+    # 可选：安装图标与桌面入口
+    mkdir -p ~/.local/share/icons/hicolor/512x512/apps
+    cp icons/niri-display-settings.png ~/.local/share/icons/hicolor/512x512/apps/
+    cp io.github.shorin_kiwata.NiriDisplaySettings.desktop ~/.local/share/applications/
+    ```
 
 ## 工作原理
 
